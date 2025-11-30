@@ -16,56 +16,53 @@ pipenv run pip install -r requirements.txt
 ```
 
 
-## Features
-### 1. Data Loading & Processing
+### Méthode 1: Portfolio Prédéfini
 
-Automatic data retrieval from Yahoo Finance (free data source)
+```python
+from portfolio_clustering_framework import PortfolioClusteringFramework
+from visualization_module import PortfolioVisualizer
+from report_generator import PortfolioReportGenerator
 
-Robust missing data handling
+# Choisir: 'default', 'tech', 'conservative', 'global', 'simple'
+framework = PortfolioClusteringFramework(preset='tech')
+results = framework.run_full_analysis()
 
-Logarithmic return calculation
+# Générer visualisations et rapports
+visualizer = PortfolioVisualizer(framework)
+visualizer.generate_all_visualizations()
 
-### 2. Correlation Analysis
+report_gen = PortfolioReportGenerator(framework, visualizer)
+report_gen.export_csv_files()
+report_gen.generate_pdf_report()
+```
 
-Pearson correlation matrix computation
+### Méthode 2: Liste Personnalisée
 
-Distance metric conversion for clustering
+```python
+mes_actifs = ['AAPL', 'MSFT', 'GLD', 'TLT', 'VNQ']
 
-Visualization of correlation patterns
+framework = PortfolioClusteringFramework(tickers=mes_actifs)
+results = framework.run_full_analysis()
 
-### 3. Hierarchical Clustering
+# Puis générer visualisations et rapports
+```
 
-Ward's linkage method for minimum variance
+---
 
-Automatic optimal cluster determination
+## 📊 Portfolios Prédéfinis
 
-Dendrogram visualization
+| Preset | Actifs | Description |
+|--------|--------|-------------|
+| **default** | 12 | Portfolio diversifié standard |
+| **tech** | 8 | Grandes valeurs technologiques |
+| **conservative** | 8 | Obligations et défensives |
+| **global** | 8 | ETFs diversifiés mondialement |
+| **simple** | 4 | Portfolio minimaliste |
 
-### 4. Portfolio Optimization
+---
 
-Equal cluster allocation strategy
 
-Diversification-focused weighting
 
-Portfolio metrics calculation
-
-### 5. Visualizations
-
-Interactive dendrogram
-
-Correlation heatmaps
-
-Portfolio composition charts
-
-Performance comparison plots
-
-### 6. Report Generation
-
-Automated PDF reports
-
-CSV data exports
-
-Summary statistics
 
 # Contributing
 This is an educational framework. Contributions welcome!

@@ -1,49 +1,135 @@
-#!/usr/bin/env python3
+
+# BEGIN: user added these matplotlib lines to ensure any plots do not pop-up in their UI
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
+plt.ioff()
+import os
+os.environ['TERM'] = 'dumb'
+# END: user added these matplotlib lines to ensure any plots do not pop-up in their UI
+# filename: example_usage.py
+# execution: true
+
 """
-Example Usage Script for Portfolio Clustering Framework
-========================================================
-This script demonstrates the complete workflow.
+Script d'Exemple Complet - Framework 
+==========================================
+Démontre l'utilisation complète du framework avec toutes les fonctionnalités.
 """
 
 from portfolio_clustering_framework import PortfolioClusteringFramework
 from visualization_module import PortfolioVisualizer
 from report_generator import PortfolioReportGenerator
+import os
 
 def main():
-    print("="*60)
-    print("PORTFOLIO CLUSTERING FRAMEWORK - EXAMPLE")
-    print("="*60)
+    """Exécuter une analyse complète de portefeuille."""
     
-    # Step 1: Initialize framework
-    print("\n1. Initializing framework...")
-    framework = PortfolioClusteringFramework()
+    print("="*70)
+    print("FRAMEWORK DE CLUSTERING HIÉRARCHIQUE ")
+    print("Exemple d'Utilisation Complète")
+    print("="*70)
     
-    # Step 2: Run analysis
-    print("\n2. Running analysis...")
-    results = framework.run_full_analysis()
+    # ========================================================================
+    # EXEMPLE 1: Utiliser un portfolio prédéfini
+    # ========================================================================
+    print("\n" + "="*70)
+    print("EXEMPLE 1: Portfolio Prédéfini 'tech'")
+    print("="*70)
     
-    # Step 3: Generate visualizations
-    print("\n3. Generating visualizations...")
-    visualizer = PortfolioVisualizer(framework)
-    figures = visualizer.generate_all_visualizations()
+    framework1 = PortfolioClusteringFramework(preset='tech')
+    results1 = framework1.run_full_analysis()
     
-    # Step 4: Create reports
-    print("\n4. Creating reports...")
-    report_gen = PortfolioReportGenerator(framework, visualizer)
-    csv_files = report_gen.export_csv_files()
-    pdf_path = report_gen.generate_pdf_report()
+    visualizer1 = PortfolioVisualizer(framework1)
+    visualizer1.generate_all_visualizations()
     
-    # Summary
-    print("\n" + "="*60)
-    print("ANALYSIS COMPLETE!")
-    print("="*60)
-    print("\nGenerated files:")
-    print("  • PDF Report: portfolio_clustering_report.pdf")
-    print("  • Visualizations: 5 PNG files")
-    print("  • Data Exports: 6 CSV files")
-    print("\n✓ Framework execution successful!")
+    report_gen1 = PortfolioReportGenerator(framework1, visualizer1)
+    report_gen1.export_csv_files()
+    report_gen1.generate_pdf_report()
     
-    return framework, visualizer, report_gen
+    print(f"\n✓ Exemple 1 terminé!")
+    print(f"✓ Tous les fichiers dans: {framework1.output_dir}/")
+    
+    # ========================================================================
+    # EXEMPLE 2: Liste d'actifs personnalisée
+    # ========================================================================
+    print("\n" + "="*70)
+    print("EXEMPLE 2: Liste Personnalisée")
+    print("="*70)
+    
+    # Définir votre propre liste d'actifs
+    mes_actifs = ['AAPL', 'MSFT', 'GOOGL', 'GLD', 'TLT', 'VNQ', 'BND']
+    
+    framework2 = PortfolioClusteringFramework(
+        tickers=mes_actifs,
+        start_date='2020-01-01',
+        end_date='2024-12-31'
+    )
+    results2 = framework2.run_full_analysis()
+    
+    visualizer2 = PortfolioVisualizer(framework2)
+    visualizer2.generate_all_visualizations()
+    
+    report_gen2 = PortfolioReportGenerator(framework2, visualizer2)
+    report_gen2.export_csv_files()
+    report_gen2.generate_pdf_report()
+    
+    print(f"\n✓ Exemple 2 terminé!")
+    print(f"✓ Tous les fichiers dans: {framework2.output_dir}/")
+    
+    # ========================================================================
+    # RÉSUMÉ FINAL
+    # ========================================================================
+    print("\n" + "="*70)
+    print("RÉSUMÉ DES ANALYSES")
+    print("="*70)
+    
+    print(f"\n📁 Dossiers créés:")
+    print(f"   1. {framework1.output_dir}/")
+    print(f"      ├── visualizations/ (5 PNG)")
+    print(f"      ├── data/ (6 CSV)")
+    print(f"      └── reports/ (1 PDF)")
+    print(f"\n   2. {framework2.output_dir}/")
+    print(f"      ├── visualizations/ (5 PNG)")
+    print(f"      ├── data/ (6 CSV)")
+    print(f"      └── reports/ (1 PDF)")
+
+    return framework1, framework2
 
 if __name__ == "__main__":
-    framework, visualizer, report_gen = main()
+    fw1, fw2 = main()
+    
+    print("\n" + "="*70)
+    print("GUIDE D'UTILISATION RAPIDE")
+    print("="*70)
+    print("""
+# Méthode 1: Utiliser un preset
+framework = PortfolioClusteringFramework(preset='tech')
+
+# Méthode 2: Liste personnalisée
+framework = PortfolioClusteringFramework(
+    tickers=['AAPL', 'MSFT', 'GLD', 'TLT']
+)
+
+# Méthode 3: Avec dates personnalisées
+framework = PortfolioClusteringFramework(
+    tickers=['AAPL', 'MSFT', 'GLD'],
+    start_date='2020-01-01',
+    end_date='2023-12-31'
+)
+
+# Exécuter l'analyse complète
+results = framework.run_full_analysis()
+
+# Générer visualisations et rapports
+from visualization_module import PortfolioVisualizer
+from report_generator import PortfolioReportGenerator
+
+visualizer = PortfolioVisualizer(framework)
+visualizer.generate_all_visualizations()
+
+report_gen = PortfolioReportGenerator(framework, visualizer)
+report_gen.export_csv_files()
+report_gen.generate_pdf_report()
+
+# Tous les fichiers sont dans: framework.output_dir/
+    """)

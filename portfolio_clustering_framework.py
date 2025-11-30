@@ -11,13 +11,12 @@ os.environ['TERM'] = 'dumb'
 # execution: true
 
 """
-Hierarchical Clustering Portfolio Framework
-============================================
-An educational open-source framework for asset classification and portfolio diversification
-using hierarchical clustering techniques.
-
-Author: Educational Framework
-License: MIT
+Portfolio Clustering Framework 
+==================================
+Version améliorée avec:
+- Organisation des fichiers dans un dossier unique
+- Interface simplifiée pour listes d'actifs personnalisées
+- Gestion automatique des dossiers de sortie
 """
 
 import numpy as np
@@ -29,52 +28,91 @@ from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
 from scipy.spatial.distance import squareform
 from datetime import datetime, timedelta
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 class PortfolioClusteringFramework:
     """
-    Main framework class for hierarchical clustering-based portfolio optimization.
+    Framework principal pour le clustering hiérarchique de portefeuille.
     
-    This educational framework demonstrates:
-    - Asset correlation analysis
-    - Hierarchical clustering for asset classification
-    - Diversification-optimized portfolio construction
+    Version 2.0 avec organisation simplifiée des fichiers.
     """
     
-    def __init__(self, tickers=None, start_date=None, end_date=None):
+    # Listes d'actifs prédéfinies pour faciliter l'utilisation
+    PRESET_PORTFOLIOS = {
+        'default': {
+            'name': 'Portfolio Diversifié Standard',
+            'tickers': ['AAPL', 'MSFT', 'GOOGL', 'JPM', 'JNJ', 'EFA', 'TLT', 'AGG', 'GLD', 'USO', 'VNQ', 'EEM'],
+            'description': '12 actifs diversifiés: tech, finance, santé, international, obligations, matières premières'
+        },
+        'tech': {
+            'name': 'Portfolio Technologie',
+            'tickers': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'NFLX'],
+            'description': 'Focus sur les grandes valeurs technologiques'
+        },
+        'conservative': {
+            'name': 'Portfolio Conservateur',
+            'tickers': ['AGG', 'TLT', 'BND', 'VNQ', 'GLD', 'JNJ', 'PG', 'KO'],
+            'description': 'Obligations, défensives et valeurs refuges'
+        },
+        'global': {
+            'name': 'Portfolio Global',
+            'tickers': ['VTI', 'VEA', 'VWO', 'BND', 'BNDX', 'GLD', 'VNQ', 'VNQI'],
+            'description': 'ETFs diversifiés mondialement'
+        },
+        'simple': {
+            'name': 'Portfolio Simple',
+            'tickers': ['SPY', 'AGG', 'GLD', 'VNQ'],
+            'description': 'Portfolio minimaliste 4 actifs'
+        }
+    }
+    
+    def __init__(self, tickers=None, preset='default', start_date=None, end_date=None, output_dir=None):
         """
-        Initialize the framework with asset universe and time period.
+        Initialiser le framework avec une liste d'actifs.
         
         Parameters:
         -----------
         tickers : list, optional
-            List of ticker symbols. If None, uses default educational portfolio.
+            Liste personnalisée de tickers. Si None, utilise le preset.
+        preset : str, optional
+            Nom du portfolio prédéfini ('default', 'tech', 'conservative', 'global', 'simple')
         start_date : str, optional
-            Start date for historical data (YYYY-MM-DD). Default: 3 years ago.
+            Date de début (YYYY-MM-DD). Par défaut: 3 ans avant aujourd'hui.
         end_date : str, optional
-            End date for historical data (YYYY-MM-DD). Default: today.
+            Date de fin (YYYY-MM-DD). Par défaut: aujourd'hui.
+        output_dir : str, optional
+            Dossier de sortie. Par défaut: 'portfolio_analysis_YYYYMMDD_HHMMSS'
+        
+        Examples:
+        ---------
+        # Utiliser un preset
+        framework = PortfolioClusteringFramework(preset='tech')
+        
+        # Liste personnalisée
+        framework = PortfolioClusteringFramework(tickers=['AAPL', 'MSFT', 'GLD', 'TLT'])
+        
+        # Avec dates personnalisées
+        framework = PortfolioClusteringFramework(
+            tickers=['AAPL', 'MSFT', 'GLD'],
+            start_date='2020-01-01',
+            end_date='2023-12-31'
+        )
         """
-        # Default educational asset universe - diverse across asset classes
-        self.default_tickers = [
-            # US Large Cap Stocks
-            'AAPL', 'MSFT', 'GOOGL', 'JPM', 'JNJ',
-            # International Stocks
-            'EFA',  # MSCI EAFE ETF
-            # Bonds
-            'TLT',  # Long-term Treasury
-            'AGG',  # Aggregate Bond
-            # Commodities
-            'GLD',  # Gold
-            'USO',  # Oil
-            # Real Estate
-            'VNQ',  # REIT ETF
-            # Emerging Markets
-            'EEM',  # Emerging Markets ETF
-        ]
+        # Déterminer la liste d'actifs
+        if tickers is not None:
+            self.tickers = tickers
+            self.portfolio_name = 'Portfolio Personnalisé'
+            self.portfolio_description = f'{len(tickers)} actifs sélectionnés'
+        elif preset in self.PRESET_PORTFOLIOS:
+            preset_info = self.PRESET_PORTFOLIOS[preset]
+            self.tickers = preset_info['tickers']
+            self.portfolio_name = preset_info['name']
+            self.portfolio_description = preset_info['description']
+        else:
+            raise ValueError(f"Preset '{preset}' non reconnu. Choix: {list(self.PRESET_PORTFOLIOS.keys())}")
         
-        self.tickers = tickers if tickers is not None else self.default_tickers
-        
-        # Set date range - default to 3 years for educational purposes
+        # Dates
         if end_date is None:
             self.end_date = datetime.now().strftime('%Y-%m-%d')
         else:
@@ -86,7 +124,20 @@ class PortfolioClusteringFramework:
         else:
             self.start_date = start_date
         
-        # Initialize data containers
+        # Créer le dossier de sortie
+        if output_dir is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.output_dir = f'portfolio_analysis_{timestamp}'
+        else:
+            self.output_dir = output_dir
+        
+        # Créer les sous-dossiers
+        os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.output_dir, 'visualizations'), exist_ok=True)
+        os.makedirs(os.path.join(self.output_dir, 'data'), exist_ok=True)
+        os.makedirs(os.path.join(self.output_dir, 'reports'), exist_ok=True)
+        
+        # Initialiser les conteneurs de données
         self.prices = None
         self.returns = None
         self.correlation_matrix = None
@@ -95,35 +146,41 @@ class PortfolioClusteringFramework:
         self.clusters = None
         self.portfolio_weights = None
         
-        print("Portfolio Clustering Framework Initialized")
-        print(f"Assets: {len(self.tickers)}")
-        print(f"Period: {self.start_date} to {self.end_date}")
-        print(f"Tickers: {', '.join(self.tickers)}")
+        print("="*70)
+        print("PORTFOLIO CLUSTERING FRAMEWORK ")
+        print("="*70)
+        print(f"\n📊 Portfolio: {self.portfolio_name}")
+        print(f"📝 Description: {self.portfolio_description}")
+        print(f"📈 Actifs: {len(self.tickers)}")
+        print(f"📅 Période: {self.start_date} à {self.end_date}")
+        print(f"📁 Dossier de sortie: {self.output_dir}/")
+        print(f"\nTickers: {', '.join(self.tickers)}")
+    
+    @classmethod
+    def list_presets(cls):
+        """
+        Afficher tous les portfolios prédéfinis disponibles.
+        """
+        print("\n" + "="*70)
+        print("PORTFOLIOS PRÉDÉFINIS DISPONIBLES")
+        print("="*70)
+        
+        for key, info in cls.PRESET_PORTFOLIOS.items():
+            print(f"\n🔹 '{key}' - {info['name']}")
+            print(f"   Description: {info['description']}")
+            print(f"   Actifs ({len(info['tickers'])}): {', '.join(info['tickers'])}")
     
     def load_data(self, verbose=True):
-        """
-        Load historical price data from Yahoo Finance.
-        
-        Educational Note:
-        - Uses Close prices (already adjusted for splits and dividends in yfinance)
-        - Handles missing data through forward-fill then backward-fill
-        - Removes assets with >30% missing data
-        
-        Returns:
-        --------
-        pd.DataFrame : Cleaned price data
-        """
+        """Charger les données depuis Yahoo Finance."""
         if verbose:
-            print("\n" + "="*60)
-            print("STEP 1: DATA LOADING")
-            print("="*60)
+            print("\n" + "="*70)
+            print("ÉTAPE 1: CHARGEMENT DES DONNÉES")
+            print("="*70)
         
-        # Download data from Yahoo Finance
         if verbose:
-            print(f"\nDownloading data for {len(self.tickers)} assets...")
+            print(f"\n📥 Téléchargement des données pour {len(self.tickers)} actifs...")
         
         try:
-            # Download all data
             raw_data = yf.download(
                 self.tickers,
                 start=self.start_date,
@@ -131,219 +188,146 @@ class PortfolioClusteringFramework:
                 progress=False
             )
             
-            # Extract Close prices (already adjusted in yfinance)
             if isinstance(raw_data.columns, pd.MultiIndex):
-                # Multiple tickers case - extract Close prices
                 data = raw_data['Close']
             else:
-                # Single ticker case
                 data = raw_data[['Close']].copy()
                 data.columns = self.tickers
             
-            # Ensure we have a DataFrame
             if not isinstance(data, pd.DataFrame):
                 data = pd.DataFrame(data)
             
         except Exception as e:
-            print(f"Error downloading data: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"❌ Erreur lors du téléchargement: {e}")
             return None
         
         if verbose:
-            print(f"Initial data shape: {data.shape}")
-            print(f"Date range: {data.index[0]} to {data.index[-1]}")
+            print(f"✓ Données téléchargées: {data.shape}")
+            print(f"✓ Période: {data.index[0]} à {data.index[-1]}")
         
-        # Data cleaning: handle missing values
+        # Nettoyage
         missing_pct = (data.isnull().sum() / len(data)) * 100
         
         if verbose and missing_pct.sum() > 0:
-            print("\nMissing data analysis:")
+            print("\n⚠️  Données manquantes détectées:")
             for ticker in data.columns:
                 pct = missing_pct[ticker]
                 if pct > 0:
-                    print(f"  {ticker}: {pct:.2f}% missing")
+                    print(f"   {ticker}: {pct:.2f}%")
         
-        # Remove assets with >30% missing data
         threshold = 30
         valid_assets = missing_pct[missing_pct <= threshold].index.tolist()
         removed_assets = [t for t in data.columns if t not in valid_assets]
         
         if removed_assets and verbose:
-            print(f"\nRemoving assets with >{threshold}% missing data: {removed_assets}")
+            print(f"\n❌ Actifs supprimés (>{threshold}% manquant): {removed_assets}")
         
         data = data[valid_assets]
-        
-        # Forward fill then backward fill remaining missing values
         data = data.ffill().bfill()
         
-        # Update tickers list
         self.tickers = valid_assets
         self.prices = data
         
         if verbose:
-            print(f"\nFinal data shape: {data.shape}")
-            print(f"Assets retained: {len(self.tickers)}")
-            print("Data cleaning complete ✓")
+            print(f"\n✓ Données nettoyées: {data.shape}")
+            print(f"✓ Actifs retenus: {len(self.tickers)}")
         
         return data
     
     def calculate_returns(self, verbose=True):
-        """
-        Calculate logarithmic returns from price data.
-        
-        Educational Note:
-        - Log returns are time-additive: log(P_t/P_0) = log(P_t/P_1) + log(P_1/P_0)
-        - More suitable for statistical analysis (closer to normal distribution)
-        - Formula: r_t = ln(P_t / P_{t-1})
-        
-        Returns:
-        --------
-        pd.DataFrame : Log returns
-        """
+        """Calculer les rendements logarithmiques."""
         if self.prices is None:
-            print("Error: No price data loaded. Run load_data() first.")
+            print("❌ Erreur: Charger les données d'abord avec load_data()")
             return None
         
         if verbose:
-            print("\n" + "="*60)
-            print("STEP 2: RETURN CALCULATION")
-            print("="*60)
+            print("\n" + "="*70)
+            print("ÉTAPE 2: CALCUL DES RENDEMENTS")
+            print("="*70)
         
-        # Calculate log returns
         self.returns = np.log(self.prices / self.prices.shift(1)).dropna()
         
         if verbose:
-            print("\nLog returns calculated")
-            print(f"Shape: {self.returns.shape}")
-            print("\nReturn statistics (annualized):")
-            print(f"{'Asset':<10} {'Mean':<10} {'Std Dev':<10} {'Sharpe':<10}")
-            print("-" * 40)
+            print(f"\n✓ Rendements logarithmiques calculés")
+            print(f"✓ Forme: {self.returns.shape}")
+            print("\n📊 Statistiques (annualisées):")
+            print(f"{'Actif':<10} {'Rendement':<12} {'Volatilité':<12} {'Sharpe':<10}")
+            print("-" * 44)
             
             for ticker in self.returns.columns:
-                mean_ret = self.returns[ticker].mean() * 252  # Annualize
-                std_ret = self.returns[ticker].std() * np.sqrt(252)  # Annualize
+                mean_ret = self.returns[ticker].mean() * 252
+                std_ret = self.returns[ticker].std() * np.sqrt(252)
                 sharpe = mean_ret / std_ret if std_ret > 0 else 0
-                print(f"{ticker:<10} {mean_ret:>9.2%} {std_ret:>9.2%} {sharpe:>9.2f}")
+                print(f"{ticker:<10} {mean_ret:>11.2%} {std_ret:>11.2%} {sharpe:>9.2f}")
         
         return self.returns
     
     def calculate_correlation(self, method='pearson', verbose=True):
-        """
-        Calculate correlation matrix and convert to distance matrix.
-        
-        Educational Note:
-        - Pearson correlation measures linear relationships
-        - Distance = sqrt(2 * (1 - correlation))
-        - This ensures: correlation=1 → distance=0, correlation=-1 → distance=2
-        
-        Parameters:
-        -----------
-        method : str
-            Correlation method: 'pearson', 'spearman', or 'kendall'
-        
-        Returns:
-        --------
-        tuple : (correlation_matrix, distance_matrix)
-        """
+        """Calculer la matrice de corrélation et de distance."""
         if self.returns is None:
-            print("Error: No returns calculated. Run calculate_returns() first.")
+            print("❌ Erreur: Calculer les rendements d'abord avec calculate_returns()")
             return None, None
         
         if verbose:
-            print("\n" + "="*60)
-            print("STEP 3: CORRELATION ANALYSIS")
-            print("="*60)
+            print("\n" + "="*70)
+            print("ÉTAPE 3: ANALYSE DE CORRÉLATION")
+            print("="*70)
         
-        # Calculate correlation matrix
         self.correlation_matrix = self.returns.corr(method=method)
         
         if verbose:
-            print(f"\nCorrelation method: {method}")
-            print(f"Matrix shape: {self.correlation_matrix.shape}")
-            print("\nCorrelation statistics:")
+            print(f"\n✓ Matrice de corrélation calculée ({method})")
+            print(f"✓ Dimension: {self.correlation_matrix.shape}")
+            
             corr_values = self.correlation_matrix.values[np.triu_indices_from(
                 self.correlation_matrix.values, k=1)]
-            print(f"  Mean correlation: {corr_values.mean():.3f}")
-            print(f"  Min correlation: {corr_values.min():.3f}")
-            print(f"  Max correlation: {corr_values.max():.3f}")
+            print(f"\n📊 Statistiques de corrélation:")
+            print(f"   Moyenne: {corr_values.mean():.3f}")
+            print(f"   Min: {corr_values.min():.3f}")
+            print(f"   Max: {corr_values.max():.3f}")
         
-        # Convert correlation to distance
-        # Distance formula: d = sqrt(2 * (1 - correlation))
-        # This ensures proper metric properties for hierarchical clustering
         self.distance_matrix = np.sqrt(2 * (1 - self.correlation_matrix))
         
         if verbose:
-            print("\nDistance matrix calculated")
-            print(f"  Distance range: [{self.distance_matrix.values.min():.3f}, "
-                  f"{self.distance_matrix.values.max():.3f}]")
+            print(f"\n✓ Matrice de distance calculée")
+            print(f"   Formule: d = √(2(1-ρ))")
         
         return self.correlation_matrix, self.distance_matrix
     
     def perform_clustering(self, method='ward', max_clusters=None, verbose=True):
-        """
-        Perform hierarchical clustering on assets.
-        
-        Educational Note:
-        - Ward's method minimizes within-cluster variance
-        - Other methods: 'single', 'complete', 'average'
-        - Optimal clusters determined by maximum distance gap in dendrogram
-        
-        Parameters:
-        -----------
-        method : str
-            Linkage method for hierarchical clustering
-        max_clusters : int, optional
-            Maximum number of clusters. If None, determined automatically.
-        
-        Returns:
-        --------
-        dict : Cluster assignments for each asset
-        """
+        """Effectuer le clustering hiérarchique."""
         if self.distance_matrix is None:
-            print("Error: No distance matrix. Run calculate_correlation() first.")
+            print("❌ Erreur: Calculer la corrélation d'abord avec calculate_correlation()")
             return None
         
         if verbose:
-            print("\n" + "="*60)
-            print("STEP 4: HIERARCHICAL CLUSTERING")
-            print("="*60)
+            print("\n" + "="*70)
+            print("ÉTAPE 4: CLUSTERING HIÉRARCHIQUE")
+            print("="*70)
         
-        # Convert distance matrix to condensed form for scipy
         distance_condensed = squareform(self.distance_matrix, checks=False)
-        
-        # Perform hierarchical clustering
         self.linkage_matrix = linkage(distance_condensed, method=method)
         
         if verbose:
-            print(f"\nLinkage method: {method}")
-            print(f"Linkage matrix shape: {self.linkage_matrix.shape}")
+            print(f"\n✓ Clustering effectué (méthode: {method})")
         
-        # Determine optimal number of clusters
         if max_clusters is None:
-            # Use elbow method: find largest gap in merge distances
             distances = self.linkage_matrix[:, 2]
             gaps = np.diff(distances)
-            
-            # Find optimal clusters (between 2 and n/2)
             n_assets = len(self.tickers)
-            max_k = min(n_assets // 2, 6)  # Cap at 6 for interpretability
-            
+            max_k = min(n_assets // 2, 6)
             optimal_k = np.argmax(gaps[-max_k:]) + 2
             n_clusters = optimal_k
             
             if verbose:
-                print("\nAutomatic cluster determination:")
-                print(f"  Optimal number of clusters: {n_clusters}")
+                print(f"✓ Nombre optimal de clusters: {n_clusters} (déterminé automatiquement)")
         else:
             n_clusters = max_clusters
             if verbose:
-                print(f"\nUsing specified number of clusters: {n_clusters}")
+                print(f"✓ Nombre de clusters: {n_clusters} (spécifié)")
         
-        # Assign assets to clusters
         cluster_labels = fcluster(self.linkage_matrix, n_clusters, criterion='maxclust')
         
-        # Create cluster dictionary
         self.clusters = {}
         for i, ticker in enumerate(self.tickers):
             cluster_id = int(cluster_labels[i])
@@ -352,69 +336,47 @@ class PortfolioClusteringFramework:
             self.clusters[cluster_id].append(ticker)
         
         if verbose:
-            print("\nCluster assignments:")
+            print(f"\n📊 Attribution des actifs aux clusters:")
             for cluster_id in sorted(self.clusters.keys()):
                 assets = self.clusters[cluster_id]
-                print(f"  Cluster {cluster_id}: {', '.join(assets)} ({len(assets)} assets)")
+                print(f"   Cluster {cluster_id}: {', '.join(assets)} ({len(assets)} actifs)")
         
         return self.clusters
     
     def optimize_portfolio(self, allocation_method='equal_cluster', verbose=True):
-        """
-        Calculate portfolio weights optimized for diversification.
-        
-        Educational Note:
-        - Equal cluster allocation ensures diversification across asset classes
-        - Within each cluster, equal weighting (naive diversification)
-        - This approach maximizes cluster-level diversification
-        
-        Parameters:
-        -----------
-        allocation_method : str
-            'equal_cluster': Equal weight per cluster, then equal within cluster
-            'equal_asset': Simple equal weighting across all assets
-        
-        Returns:
-        --------
-        pd.Series : Portfolio weights for each asset
-        """
+        """Calculer les poids du portefeuille."""
         if self.clusters is None:
-            print("Error: No clusters defined. Run perform_clustering() first.")
+            print("❌ Erreur: Effectuer le clustering d'abord avec perform_clustering()")
             return None
         
         if verbose:
-            print("\n" + "="*60)
-            print("STEP 5: PORTFOLIO OPTIMIZATION")
-            print("="*60)
+            print("\n" + "="*70)
+            print("ÉTAPE 5: OPTIMISATION DU PORTEFEUILLE")
+            print("="*70)
         
         weights = {}
         
         if allocation_method == 'equal_cluster':
-            # Equal allocation to each cluster
             n_clusters = len(self.clusters)
             cluster_weight = 1.0 / n_clusters
             
             if verbose:
-                print("\nAllocation method: Equal weight per cluster")
-                print(f"Number of clusters: {n_clusters}")
-                print(f"Weight per cluster: {cluster_weight:.2%}")
+                print(f"\n✓ Méthode: Allocation équilibrée par cluster")
+                print(f"✓ Poids par cluster: {cluster_weight:.2%}")
             
-            # Within each cluster, equal weight to each asset
             for cluster_id, assets in self.clusters.items():
                 n_assets_in_cluster = len(assets)
                 asset_weight = cluster_weight / n_assets_in_cluster
-                
                 for asset in assets:
                     weights[asset] = asset_weight
         
         elif allocation_method == 'equal_asset':
-            # Simple equal weighting
             n_assets = len(self.tickers)
             weight = 1.0 / n_assets
             
             if verbose:
-                print("\nAllocation method: Equal weight per asset")
-                print(f"Weight per asset: {weight:.2%}")
+                print(f"\n✓ Méthode: Allocation équipondérée")
+                print(f"✓ Poids par actif: {weight:.2%}")
             
             for asset in self.tickers:
                 weights[asset] = weight
@@ -422,11 +384,10 @@ class PortfolioClusteringFramework:
         self.portfolio_weights = pd.Series(weights)
         
         if verbose:
-            print("\nPortfolio weights:")
-            print(f"{'Asset':<10} {'Weight':<10} {'Cluster':<10}")
+            print(f"\n📊 Poids du portefeuille:")
+            print(f"{'Actif':<10} {'Poids':<10} {'Cluster':<10}")
             print("-" * 30)
             
-            # Find cluster for each asset
             asset_to_cluster = {}
             for cluster_id, assets in self.clusters.items():
                 for asset in assets:
@@ -437,48 +398,37 @@ class PortfolioClusteringFramework:
                 cluster = asset_to_cluster.get(asset, 'N/A')
                 print(f"{asset:<10} {weight:>9.2%} {cluster:>9}")
         
-        # Calculate diversification metrics
+        # Métriques de diversification
         self._calculate_diversification_metrics(verbose=verbose)
         
         return self.portfolio_weights
     
     def _calculate_diversification_metrics(self, verbose=True):
-        """
-        Calculate portfolio diversification metrics.
-        
-        Educational Note:
-        - Effective N: Number of "independent" assets
-        - Diversification Ratio: Weighted avg volatility / Portfolio volatility
-        - Higher values indicate better diversification
-        """
+        """Calculer les métriques de diversification."""
         if verbose:
-            print("\nDiversification metrics:")
+            print(f"\n📊 Métriques de diversification:")
         
-        # Herfindahl index (concentration)
         herfindahl = (self.portfolio_weights ** 2).sum()
         effective_n = 1 / herfindahl
         
         if verbose:
-            print(f"  Effective number of assets: {effective_n:.2f}")
-            print(f"  Concentration (Herfindahl): {herfindahl:.4f}")
+            print(f"   Nombre effectif d'actifs: {effective_n:.2f}")
+            print(f"   Concentration (Herfindahl): {herfindahl:.4f}")
         
-        # Portfolio variance - convert to numpy arrays for proper matrix multiplication
         weights_array = self.portfolio_weights.values.reshape(-1, 1)
-        cov_matrix = self.returns.cov().values  # Convert to numpy array
+        cov_matrix = self.returns.cov().values
         portfolio_variance = float((weights_array.T @ cov_matrix @ weights_array)[0, 0])
-        portfolio_vol = np.sqrt(portfolio_variance * 252)  # Annualized
+        portfolio_vol = np.sqrt(portfolio_variance * 252)
         
-        # Weighted average volatility
         individual_vols = self.returns.std() * np.sqrt(252)
         weighted_avg_vol = (self.portfolio_weights * individual_vols).sum()
         
-        # Diversification ratio
         div_ratio = weighted_avg_vol / portfolio_vol
         
         if verbose:
-            print(f"  Portfolio volatility (annual): {portfolio_vol:.2%}")
-            print(f"  Weighted avg volatility: {weighted_avg_vol:.2%}")
-            print(f"  Diversification ratio: {div_ratio:.2f}")
+            print(f"   Volatilité du portefeuille: {portfolio_vol:.2%}")
+            print(f"   Volatilité moyenne pondérée: {weighted_avg_vol:.2%}")
+            print(f"   Ratio de diversification: {div_ratio:.2f}")
         
         return {
             'effective_n': effective_n,
@@ -488,36 +438,20 @@ class PortfolioClusteringFramework:
         }
     
     def run_full_analysis(self):
-        """
-        Execute complete analysis pipeline.
+        """Exécuter l'analyse complète."""
+        print("\n" + "="*70)
+        print("ANALYSE COMPLÈTE DU PORTEFEUILLE")
+        print("="*70)
         
-        Returns:
-        --------
-        dict : Results dictionary with all outputs
-        """
-        print("\n" + "="*60)
-        print("HIERARCHICAL CLUSTERING PORTFOLIO FRAMEWORK")
-        print("Educational Open-Source Implementation")
-        print("="*60)
-        
-        # Step 1: Load data
         self.load_data()
-        
-        # Step 2: Calculate returns
         self.calculate_returns()
-        
-        # Step 3: Correlation analysis
         self.calculate_correlation()
-        
-        # Step 4: Hierarchical clustering
         self.perform_clustering()
-        
-        # Step 5: Portfolio optimization
         self.optimize_portfolio()
         
-        print("\n" + "="*60)
-        print("ANALYSIS COMPLETE")
-        print("="*60)
+        print("\n" + "="*70)
+        print("✓ ANALYSE TERMINÉE")
+        print("="*70)
         
         return {
             'prices': self.prices,
@@ -528,14 +462,33 @@ class PortfolioClusteringFramework:
         }
 
 
-# Example usage
+# Démonstration
 if __name__ == "__main__":
-    # Initialize framework with default educational portfolio
-    framework = PortfolioClusteringFramework()
+    print("\n" + "="*70)
+    print("DÉMONSTRATION DU FRAMEWORK ")
+    print("="*70)
     
-    # Run complete analysis
-    results = framework.run_full_analysis()
+    # Afficher les presets disponibles
+    PortfolioClusteringFramework.list_presets()
     
-    print("\n✓ Framework execution completed successfully!")
-    print("✓ Results available in 'results' dictionary")
-    print("✓ Framework object stored in 'framework' variable")
+    print("\n" + "="*70)
+    print("EXEMPLE 1: Utilisation d'un preset")
+    print("="*70)
+    
+    # Utiliser le preset 'simple'
+    framework1 = PortfolioClusteringFramework(preset='simple')
+    results1 = framework1.run_full_analysis()
+    
+    print("\n" + "="*70)
+    print("EXEMPLE 2: Liste personnalisée")
+    print("="*70)
+    
+    # Liste personnalisée
+    my_tickers = ['AAPL', 'MSFT', 'GLD', 'TLT', 'VNQ']
+    framework2 = PortfolioClusteringFramework(tickers=my_tickers)
+    results2 = framework2.run_full_analysis()
+    
+    print("\n✓ Framework testé avec succès!")
+    print(f"✓ Dossiers créés:")
+    print(f"   - {framework1.output_dir}/")
+    print(f"   - {framework2.output_dir}/")

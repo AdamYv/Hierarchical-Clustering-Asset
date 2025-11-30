@@ -11,50 +11,48 @@ os.environ['TERM'] = 'dumb'
 # execution: true
 
 """
-Report Generator for Portfolio Clustering Framework
-====================================================
-Generates comprehensive PDF reports and CSV exports.
+Générateur de Rapports 
+============================
+Génère les rapports PDF et exports CSV dans le dossier de sortie.
 """
 
 import pandas as pd
 import numpy as np
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from datetime import datetime
 import os
 
 class PortfolioReportGenerator:
     """
-    Generate comprehensive PDF reports and CSV exports.
-    
-    Outputs:
-    - PDF report with analysis and visualizations
-    - CSV files for prices, returns, correlations, and weights
+    Générateur de rapports pour le framework de clustering.
+    Tous les fichiers sont sauvegardés dans le dossier de sortie.
     """
     
     def __init__(self, framework, visualizer=None):
         """
-        Initialize report generator.
+        Initialiser le générateur de rapports.
         
         Parameters:
         -----------
         framework : PortfolioClusteringFramework
-            Completed framework instance
+            Instance du framework complétée
         visualizer : PortfolioVisualizer, optional
-            Visualizer instance with generated figures
+            Instance du visualiseur avec figures générées
         """
         self.framework = framework
         self.visualizer = visualizer
+        self.data_dir = os.path.join(framework.output_dir, 'data')
+        self.report_dir = os.path.join(framework.output_dir, 'reports')
         self.styles = getSampleStyleSheet()
         self._setup_custom_styles()
         
     def _setup_custom_styles(self):
-        """Setup custom paragraph styles for the report."""
-        # Title style
+        """Configurer les styles personnalisés."""
         self.styles.add(ParagraphStyle(
             name='CustomTitle',
             parent=self.styles['Heading1'],
@@ -65,7 +63,6 @@ class PortfolioReportGenerator:
             fontName='Helvetica-Bold'
         ))
         
-        # Subtitle style
         self.styles.add(ParagraphStyle(
             name='CustomSubtitle',
             parent=self.styles['Heading2'],
@@ -76,7 +73,6 @@ class PortfolioReportGenerator:
             fontName='Helvetica-Bold'
         ))
         
-        # Section style
         self.styles.add(ParagraphStyle(
             name='SectionHeader',
             parent=self.styles['Heading2'],
@@ -91,7 +87,6 @@ class PortfolioReportGenerator:
             backColor=colors.HexColor('#e8f4f8')
         ))
         
-        # Body text
         self.styles.add(ParagraphStyle(
             name='CustomBody',
             parent=self.styles['BodyText'],
@@ -100,73 +95,60 @@ class PortfolioReportGenerator:
             spaceAfter=10
         ))
     
-    def export_csv_files(self, output_dir='./'):
-        """
-        Export all data to CSV files.
-        
-        Parameters:
-        -----------
-        output_dir : str
-            Directory to save CSV files
-        
-        Returns:
-        --------
-        dict : Paths to saved CSV files
-        """
-        print("\n" + "="*60)
-        print("EXPORTING CSV FILES")
-        print("="*60 + "\n")
+    def export_csv_files(self):
+        """Exporter toutes les données en CSV."""
+        print("\n" + "="*70)
+        print("EXPORT DES FICHIERS CSV")
+        print("="*70 + "\n")
         
         files = {}
         
-        # Export prices
-        prices_path = os.path.join(output_dir, 'asset_prices.csv')
+        # Prix
+        prices_path = os.path.join(self.data_dir, 'asset_prices.csv')
         self.framework.prices.to_csv(prices_path)
         files['prices'] = prices_path
-        print(f"✓ Prices exported: {prices_path}")
+        print(f"✓ Prix: {prices_path}")
         
-        # Export returns
-        returns_path = os.path.join(output_dir, 'asset_returns.csv')
+        # Rendements
+        returns_path = os.path.join(self.data_dir, 'asset_returns.csv')
         self.framework.returns.to_csv(returns_path)
         files['returns'] = returns_path
-        print(f"✓ Returns exported: {returns_path}")
+        print(f"✓ Rendements: {returns_path}")
         
-        # Export correlation matrix
-        corr_path = os.path.join(output_dir, 'correlation_matrix.csv')
+        # Corrélation
+        corr_path = os.path.join(self.data_dir, 'correlation_matrix.csv')
         self.framework.correlation_matrix.to_csv(corr_path)
         files['correlation'] = corr_path
-        print(f"✓ Correlation matrix exported: {corr_path}")
+        print(f"✓ Matrice de corrélation: {corr_path}")
         
-        # Export portfolio weights
-        weights_path = os.path.join(output_dir, 'portfolio_weights.csv')
-        weights_df = pd.DataFrame({
-            'Asset': self.framework.portfolio_weights.index,
-            'Weight': self.framework.portfolio_weights.values
-        })
-        
-        # Add cluster information
+        # Poids du portefeuille
+        weights_path = os.path.join(self.data_dir, 'portfolio_weights.csv')
         asset_to_cluster = {}
         for cluster_id, assets in self.framework.clusters.items():
             for asset in assets:
                 asset_to_cluster[asset] = cluster_id
-        weights_df['Cluster'] = weights_df['Asset'].map(asset_to_cluster)
         
+        weights_df = pd.DataFrame({
+            'Asset': self.framework.portfolio_weights.index,
+            'Weight': self.framework.portfolio_weights.values,
+            'Cluster': [asset_to_cluster[a] for a in self.framework.portfolio_weights.index]
+        })
         weights_df.to_csv(weights_path, index=False)
         files['weights'] = weights_path
-        print(f"✓ Portfolio weights exported: {weights_path}")
+        print(f"✓ Poids du portefeuille: {weights_path}")
         
-        # Export cluster assignments
-        clusters_path = os.path.join(output_dir, 'cluster_assignments.csv')
+        # Clusters
+        clusters_path = os.path.join(self.data_dir, 'cluster_assignments.csv')
         cluster_data = []
         for cluster_id, assets in self.framework.clusters.items():
             for asset in assets:
                 cluster_data.append({'Asset': asset, 'Cluster': cluster_id})
         pd.DataFrame(cluster_data).to_csv(clusters_path, index=False)
         files['clusters'] = clusters_path
-        print(f"✓ Cluster assignments exported: {clusters_path}")
+        print(f"✓ Assignations de clusters: {clusters_path}")
         
-        # Export summary statistics
-        stats_path = os.path.join(output_dir, 'summary_statistics.csv')
+        # Statistiques
+        stats_path = os.path.join(self.data_dir, 'summary_statistics.csv')
         stats_data = []
         for ticker in self.framework.returns.columns:
             mean_ret = self.framework.returns[ticker].mean() * 252
@@ -183,32 +165,23 @@ class PortfolioReportGenerator:
             })
         pd.DataFrame(stats_data).to_csv(stats_path, index=False)
         files['statistics'] = stats_path
-        print(f"✓ Summary statistics exported: {stats_path}")
+        print(f"✓ Statistiques récapitulatives: {stats_path}")
         
-        print("\n" + "="*60)
-        print("CSV EXPORT COMPLETE")
-        print("="*60)
+        print("\n" + "="*70)
+        print(f"✓ Tous les CSV sauvegardés dans:")
+        print(f"  {self.data_dir}/")
+        print("="*70)
         
         return files
     
-    def generate_pdf_report(self, output_path='portfolio_clustering_report.pdf'):
-        """
-        Generate comprehensive PDF report.
+    def generate_pdf_report(self):
+        """Générer le rapport PDF complet."""
+        output_path = os.path.join(self.report_dir, 'portfolio_clustering_report.pdf')
         
-        Parameters:
-        -----------
-        output_path : str
-            Path for output PDF file
+        print("\n" + "="*70)
+        print("GÉNÉRATION DU RAPPORT PDF")
+        print("="*70 + "\n")
         
-        Returns:
-        --------
-        str : Path to generated PDF
-        """
-        print("\n" + "="*60)
-        print("GENERATING PDF REPORT")
-        print("="*60 + "\n")
-        
-        # Create PDF document
         doc = SimpleDocTemplate(
             output_path,
             pagesize=letter,
@@ -218,69 +191,68 @@ class PortfolioReportGenerator:
             bottomMargin=18
         )
         
-        # Container for PDF elements
         story = []
         
-        # Title page
+        # Page de titre
         story.append(Spacer(1, 2*inch))
         story.append(Paragraph(
-            "Portfolio Clustering Framework",
+            "Rapport d'Analyse de Portefeuille",
             self.styles['CustomTitle']
         ))
         story.append(Spacer(1, 0.3*inch))
         story.append(Paragraph(
-            "Hierarchical Clustering for Asset Classification<br/>and Portfolio Diversification",
+            f"{self.framework.portfolio_name}<br/>Clustering Hiérarchique et Optimisation",
             self.styles['CustomSubtitle']
         ))
         story.append(Spacer(1, 0.5*inch))
         story.append(Paragraph(
-            f"<b>Report Generated:</b> {datetime.now().strftime('%B %d, %Y at %H:%M')}<br/>"
-            f"<b>Analysis Period:</b> {self.framework.start_date} to {self.framework.end_date}<br/>"
-            f"<b>Number of Assets:</b> {len(self.framework.tickers)}<br/>"
-            f"<b>Number of Clusters:</b> {len(self.framework.clusters)}",
+            f"<b>Date du rapport:</b> {datetime.now().strftime('%d %B %Y à %H:%M')}<br/>"
+            f"<b>Période d'analyse:</b> {self.framework.start_date} au {self.framework.end_date}<br/>"
+            f"<b>Nombre d'actifs:</b> {len(self.framework.tickers)}<br/>"
+            f"<b>Nombre de clusters:</b> {len(self.framework.clusters)}<br/>"
+            f"<b>Description:</b> {self.framework.portfolio_description}",
             self.styles['CustomBody']
         ))
         story.append(Spacer(1, 0.5*inch))
         story.append(Paragraph(
-            "<i>Educational Open-Source Framework</i><br/>"
-            "<i>Free Data Sources: Yahoo Finance</i>",
+            "<i>Framework Open-Source Éducatif</i><br/>"
+            "<i>Source de données: Yahoo Finance (gratuit)</i>",
             self.styles['CustomBody']
         ))
         
         story.append(PageBreak())
         
-        # Executive Summary
-        story.append(Paragraph("Executive Summary", self.styles['SectionHeader']))
+        # Résumé exécutif
+        story.append(Paragraph("Résumé Exécutif", self.styles['SectionHeader']))
         story.append(Spacer(1, 0.2*inch))
         
         summary_text = f"""
-        This report presents a comprehensive analysis of portfolio diversification using hierarchical 
-        clustering techniques. The framework analyzed {len(self.framework.tickers)} assets over a 
-        {(pd.to_datetime(self.framework.end_date) - pd.to_datetime(self.framework.start_date)).days // 365}-year 
-        period, identifying {len(self.framework.clusters)} distinct asset clusters based on correlation patterns.
+        Ce rapport présente une analyse complète de diversification de portefeuille utilisant 
+        des techniques de clustering hiérarchique. Le framework a analysé {len(self.framework.tickers)} 
+        actifs sur une période de {(pd.to_datetime(self.framework.end_date) - pd.to_datetime(self.framework.start_date)).days // 365} 
+        ans, identifiant {len(self.framework.clusters)} clusters distincts basés sur les patterns de corrélation.
         <br/><br/>
-        <b>Key Findings:</b><br/>
-        • The clustering algorithm successfully identified natural groupings in the asset universe<br/>
-        • Portfolio diversification ratio of {self._calculate_div_ratio():.2f} indicates strong diversification benefits<br/>
-        • Equal cluster weighting strategy ensures balanced exposure across asset classes<br/>
-        • Effective number of independent assets: {self._calculate_effective_n():.2f}<br/>
+        <b>Résultats Clés:</b><br/>
+        • Clusters identifiés avec succès par l'algorithme de clustering hiérarchique<br/>
+        • Ratio de diversification de {self._calculate_div_ratio():.2f} indiquant de forts bénéfices<br/>
+        • Stratégie d'allocation équilibrée par cluster pour une exposition balancée<br/>
+        • Nombre effectif d'actifs indépendants: {self._calculate_effective_n():.2f}<br/>
         <br/>
-        <b>Methodology:</b><br/>
-        • Correlation-based distance metric: d = √(2(1-ρ))<br/>
-        • Ward's hierarchical clustering for minimum variance<br/>
-        • Automatic cluster determination via elbow method<br/>
-        • Equal allocation across clusters for maximum diversification
+        <b>Méthodologie:</b><br/>
+        • Métrique de distance basée sur la corrélation: d = √(2(1-ρ))<br/>
+        • Clustering hiérarchique de Ward pour minimiser la variance<br/>
+        • Détermination automatique du nombre de clusters (méthode du coude)<br/>
+        • Allocation équilibrée entre clusters pour maximiser la diversification
         """
         story.append(Paragraph(summary_text, self.styles['CustomBody']))
         
         story.append(PageBreak())
         
-        # Asset Universe
-        story.append(Paragraph("Asset Universe", self.styles['SectionHeader']))
+        # Univers d'actifs
+        story.append(Paragraph("Univers d'Actifs", self.styles['SectionHeader']))
         story.append(Spacer(1, 0.2*inch))
         
-        # Create asset table
-        asset_data = [['Asset', 'Cluster', 'Annual Return', 'Annual Vol', 'Sharpe', 'Weight']]
+        asset_data = [['Actif', 'Cluster', 'Rend. Annuel', 'Vol. Annuelle', 'Sharpe', 'Poids']]
         asset_to_cluster = {}
         for cluster_id, assets in self.framework.clusters.items():
             for asset in assets:
@@ -318,16 +290,17 @@ class PortfolioReportGenerator:
         
         story.append(PageBreak())
         
-        # Cluster Analysis
-        story.append(Paragraph("Cluster Analysis", self.styles['SectionHeader']))
+        # Analyse des clusters
+        story.append(Paragraph("Analyse des Clusters", self.styles['SectionHeader']))
         story.append(Spacer(1, 0.2*inch))
         
         cluster_text = f"""
-        The hierarchical clustering algorithm identified {len(self.framework.clusters)} distinct clusters 
-        based on correlation patterns in asset returns. Each cluster represents a group of assets with 
-        similar behavior patterns, providing natural diversification boundaries.
+        L'algorithme de clustering hiérarchique a identifié {len(self.framework.clusters)} clusters 
+        distincts basés sur les patterns de corrélation des rendements. Chaque cluster représente 
+        un groupe d'actifs avec des comportements similaires, fournissant des frontières naturelles 
+        de diversification.
         <br/><br/>
-        <b>Cluster Composition:</b>
+        <b>Composition des Clusters:</b>
         """
         story.append(Paragraph(cluster_text, self.styles['CustomBody']))
         story.append(Spacer(1, 0.1*inch))
@@ -337,129 +310,92 @@ class PortfolioReportGenerator:
             cluster_weight = sum(self.framework.portfolio_weights[a] for a in assets)
             
             cluster_desc = f"""
-            <b>Cluster {cluster_id}</b> ({len(assets)} assets, {cluster_weight:.1%} portfolio weight):<br/>
-            Assets: {', '.join(assets)}<br/>
+            <b>Cluster {cluster_id}</b> ({len(assets)} actifs, {cluster_weight:.1%} du portefeuille):<br/>
+            Actifs: {', '.join(assets)}<br/>
             """
             story.append(Paragraph(cluster_desc, self.styles['CustomBody']))
             story.append(Spacer(1, 0.1*inch))
         
         story.append(PageBreak())
         
-        # Add visualizations if available
+        # Visualisations
         if self.visualizer is not None:
-            story.append(Paragraph("Visualizations", self.styles['SectionHeader']))
+            story.append(Paragraph("Visualisations", self.styles['SectionHeader']))
             story.append(Spacer(1, 0.2*inch))
             
-            # Add dendrogram
-            if os.path.exists('dendrogram.png'):
-                story.append(Paragraph("<b>Hierarchical Clustering Dendrogram</b>", self.styles['CustomBody']))
+            viz_dir = os.path.join(self.framework.output_dir, 'visualizations')
+            
+            # Dendrogramme
+            dendro_path = os.path.join(viz_dir, 'dendrogram.png')
+            if os.path.exists(dendro_path):
+                story.append(Paragraph("<b>Dendrogramme de Clustering Hiérarchique</b>", self.styles['CustomBody']))
                 story.append(Spacer(1, 0.1*inch))
-                img = Image('dendrogram.png', width=6.5*inch, height=3.8*inch)
+                img = Image(dendro_path, width=6.5*inch, height=3.8*inch)
                 story.append(img)
                 story.append(PageBreak())
             
-            # Add correlation heatmap
-            if os.path.exists('correlation_heatmap.png'):
-                story.append(Paragraph("<b>Correlation Matrix</b>", self.styles['CustomBody']))
+            # Heatmap de corrélation
+            corr_path = os.path.join(viz_dir, 'correlation_heatmap.png')
+            if os.path.exists(corr_path):
+                story.append(Paragraph("<b>Matrice de Corrélation</b>", self.styles['CustomBody']))
                 story.append(Spacer(1, 0.1*inch))
-                img = Image('correlation_heatmap.png', width=5.5*inch, height=4.5*inch)
+                img = Image(corr_path, width=5.5*inch, height=4.5*inch)
                 story.append(img)
                 story.append(PageBreak())
             
-            # Add portfolio composition
-            if os.path.exists('portfolio_composition.png'):
-                story.append(Paragraph("<b>Portfolio Composition</b>", self.styles['CustomBody']))
+            # Composition du portefeuille
+            comp_path = os.path.join(viz_dir, 'portfolio_composition.png')
+            if os.path.exists(comp_path):
+                story.append(Paragraph("<b>Composition du Portefeuille</b>", self.styles['CustomBody']))
                 story.append(Spacer(1, 0.1*inch))
-                img = Image('portfolio_composition.png', width=6.5*inch, height=3.8*inch)
+                img = Image(comp_path, width=6.5*inch, height=3.8*inch)
                 story.append(img)
                 story.append(PageBreak())
             
-            # Add performance comparison
-            if os.path.exists('performance_comparison.png'):
-                story.append(Paragraph("<b>Performance Analysis</b>", self.styles['CustomBody']))
+            # Performance
+            perf_path = os.path.join(viz_dir, 'performance_comparison.png')
+            if os.path.exists(perf_path):
+                story.append(Paragraph("<b>Analyse de Performance</b>", self.styles['CustomBody']))
                 story.append(Spacer(1, 0.1*inch))
-                img = Image('performance_comparison.png', width=6.5*inch, height=4.8*inch)
+                img = Image(perf_path, width=6.5*inch, height=4.8*inch)
                 story.append(img)
                 story.append(PageBreak())
-        
-        # Methodology
-        story.append(Paragraph("Methodology", self.styles['SectionHeader']))
-        story.append(Spacer(1, 0.2*inch))
-        
-        methodology_text = """
-        <b>1. Data Collection:</b><br/>
-        Historical price data retrieved from Yahoo Finance, a free and reliable data source. 
-        Adjusted close prices account for stock splits and dividends.<br/><br/>
-        
-        <b>2. Return Calculation:</b><br/>
-        Logarithmic returns computed for time-additivity and improved statistical properties: 
-        r_t = ln(P_t / P_{t-1})<br/><br/>
-        
-        <b>3. Correlation Analysis:</b><br/>
-        Pearson correlation matrix calculated to measure linear relationships between asset returns.<br/><br/>
-        
-        <b>4. Distance Metric:</b><br/>
-        Correlation converted to distance using: d = √(2(1-ρ)), ensuring proper metric properties 
-        for hierarchical clustering.<br/><br/>
-        
-        <b>5. Hierarchical Clustering:</b><br/>
-        Ward's method applied to minimize within-cluster variance. Optimal cluster count determined 
-        via elbow method analyzing merge distances.<br/><br/>
-        
-        <b>6. Portfolio Optimization:</b><br/>
-        Equal allocation across clusters ensures diversification. Within each cluster, assets 
-        receive equal weights, implementing a naive diversification strategy that maximizes 
-        cluster-level diversification benefits.
-        """
-        story.append(Paragraph(methodology_text, self.styles['CustomBody']))
-        
-        story.append(PageBreak())
         
         # Conclusion
-        story.append(Paragraph("Conclusion and Educational Notes", self.styles['SectionHeader']))
+        story.append(Paragraph("Conclusion", self.styles['SectionHeader']))
         story.append(Spacer(1, 0.2*inch))
         
         conclusion_text = """
-        This framework demonstrates the practical application of hierarchical clustering for portfolio 
-        construction and asset classification. The methodology provides several educational insights:
+        Ce framework démontre l'application pratique du clustering hiérarchique pour la construction 
+        de portefeuille et la classification d'actifs. La méthodologie fournit plusieurs insights éducatifs 
+        importants sur la diversification et l'allocation d'actifs.
         <br/><br/>
-        <b>Key Learnings:</b><br/>
-        • Correlation-based clustering reveals natural asset class groupings<br/>
-        • Diversification benefits arise from low inter-cluster correlations<br/>
-        • Equal cluster weighting provides systematic diversification<br/>
-        • Hierarchical methods offer interpretable, transparent classification<br/>
+        <b>Points Clés:</b><br/>
+        • Le clustering basé sur la corrélation révèle des groupements naturels de classes d'actifs<br/>
+        • Les bénéfices de diversification proviennent de corrélations inter-clusters faibles<br/>
+        • L'allocation équilibrée par cluster fournit une diversification systématique<br/>
+        • Les méthodes hiérarchiques offrent une classification transparente et interprétable<br/>
         <br/>
-        <b>Practical Applications:</b><br/>
-        • Asset allocation across diverse investment universes<br/>
-        • Risk management through systematic diversification<br/>
-        • Portfolio rebalancing based on changing correlations<br/>
-        • Educational tool for understanding portfolio theory<br/>
-        <br/>
-        <b>Limitations and Considerations:</b><br/>
-        • Historical correlations may not predict future relationships<br/>
-        • Equal weighting ignores expected returns and risk preferences<br/>
-        • Clustering stability should be monitored over time<br/>
-        • Transaction costs and constraints not considered<br/>
-        <br/>
-        <b>Open Source and Educational Use:</b><br/>
-        This framework is designed for educational purposes using only free, publicly available 
-        data sources. The code is transparent, well-documented, and extensible for further research 
-        and learning.
+        <b>Utilisation Éducative:</b><br/>
+        Ce framework est conçu pour l'enseignement en utilisant uniquement des sources de données 
+        gratuites. Le code est transparent, bien documenté et extensible pour la recherche et 
+        l'apprentissage supplémentaires.
         """
         story.append(Paragraph(conclusion_text, self.styles['CustomBody']))
         
-        # Build PDF
+        # Construire le PDF
         doc.build(story)
         
-        print(f"✓ PDF report generated: {output_path}")
-        print("\n" + "="*60)
-        print("PDF GENERATION COMPLETE")
-        print("="*60)
+        print(f"✓ Rapport PDF généré: {output_path}")
+        print("\n" + "="*70)
+        print(f"✓ Rapport sauvegardé dans:")
+        print(f"  {self.report_dir}/")
+        print("="*70)
         
         return output_path
     
     def _calculate_div_ratio(self):
-        """Calculate diversification ratio."""
+        """Calculer le ratio de diversification."""
         weights_array = self.framework.portfolio_weights.values.reshape(-1, 1)
         cov_matrix = self.framework.returns.cov().values
         portfolio_variance = float((weights_array.T @ cov_matrix @ weights_array)[0, 0])
@@ -471,39 +407,30 @@ class PortfolioReportGenerator:
         return weighted_avg_vol / portfolio_vol
     
     def _calculate_effective_n(self):
-        """Calculate effective number of assets."""
+        """Calculer le nombre effectif d'actifs."""
         herfindahl = (self.framework.portfolio_weights ** 2).sum()
         return 1 / herfindahl
 
 
-# Example usage
+# Test du module
 if __name__ == "__main__":
     from portfolio_clustering_framework import PortfolioClusteringFramework
     from visualization_module import PortfolioVisualizer
     
-    # Run complete analysis
-    print("Running complete portfolio analysis pipeline...")
-    framework = PortfolioClusteringFramework()
-    results = framework.run_full_analysis()
+    print("Test du générateur de rapports \n")
     
-    # Generate visualizations
+    # Créer un framework
+    framework = PortfolioClusteringFramework(preset='simple')
+    framework.run_full_analysis()
+    
+    # Générer les visualisations
     visualizer = PortfolioVisualizer(framework)
-    figures = visualizer.generate_all_visualizations()
+    visualizer.generate_all_visualizations()
     
-    # Generate reports
+    # Générer les rapports
     report_gen = PortfolioReportGenerator(framework, visualizer)
-    
-    # Export CSV files
     csv_files = report_gen.export_csv_files()
-    
-    # Generate PDF report
     pdf_path = report_gen.generate_pdf_report()
     
-    print("\n" + "="*60)
-    print("COMPLETE FRAMEWORK EXECUTION FINISHED")
-    print("="*60)
-    print("\nGenerated files:")
-    print("  • PDF Report: portfolio_clustering_report.pdf")
-    print("  • Visualizations: 5 PNG files")
-    print("  • Data Exports: 6 CSV files")
-    print("\n✓ All outputs ready for educational use!")
+    print(f"\n✓ Test réussi!")
+    print(f"✓ Tous les fichiers dans: {framework.output_dir}/")
