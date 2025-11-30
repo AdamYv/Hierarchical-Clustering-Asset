@@ -1,6 +1,11 @@
 # Hierarchical-Clustering-Asset
 Alternative to Markovitch 
 
+## Easy Download 
+```git clone https://github.com/AdamYv/Hierarchical-Clustering-Asset/``
+
+``pip install -r requirements.txt``
+
 ## Educational Concepts
 Hierarchical Clustering
 Distance Metric: $d = \sqrt{(2(1-ρ))}$ converts correlation to proper distance
