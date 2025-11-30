@@ -1,2 +1,2 @@
 # Hierarchical-Clustering-Asset
-Alternative a Markovitche 
+Alternative to Markovitch 
