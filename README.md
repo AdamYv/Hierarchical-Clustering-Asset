@@ -66,3 +66,8 @@ Automated PDF reports
 CSV data exports
 
 Summary statistics
+
+# Contributing
+This is an educational framework. Contributions welcome!
+# Support
+For educational purposes only. Not financial advice.
