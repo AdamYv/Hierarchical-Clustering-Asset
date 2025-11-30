@@ -1,6 +1,4 @@
 # Hierarchical-Clustering-Asset
-Alternative to Markovitch 
-
 ## Quick Start
 ```
 git clone https://github.com/AdamYv/Hierarchical-Clustering-Asset/
