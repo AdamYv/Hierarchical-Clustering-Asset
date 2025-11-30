@@ -2,9 +2,10 @@
 Alternative to Markovitch 
 
 ## Easy Download 
-``git clone https://github.com/AdamYv/Hierarchical-Clustering-Asset/``
-
-``pip install -r requirements.txt``
+```
+git clone https://github.com/AdamYv/Hierarchical-Clustering-Asset/
+pip install -r requirements.txt
+```
 
 ## Educational Concepts
 Hierarchical Clustering
