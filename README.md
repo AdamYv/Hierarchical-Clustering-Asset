@@ -1,34 +1,70 @@
 # Hierarchical-Clustering-Asset
 Alternative to Markovitch 
 
-## Easy Download 
+## Quick Start
 ```
 git clone https://github.com/AdamYv/Hierarchical-Clustering-Asset/
+```
+Dependence :
+```
 pip install -r requirements.txt
 ```
+or 
 
-## Educational Concepts
-Hierarchical Clustering
-Distance Metric: $d = \sqrt{(2(1-ρ))}$ converts correlation to proper distance
-
-Linkage Method: Ward's method minimizes within-cluster variance
-
-Dendrogram: Visual representation of hierarchical relationships
-
-## Portfolio Theory
-Diversification: Reduces risk through low-correlation assets
-
-Equal Weighting: Naive diversification strategy
-
-Cluster Allocation: Systematic exposure across asset classes
-
-## Risk Metrics
-Effective N: Number of independent assets (1/Herfindahl)
-
-Diversification Ratio: Weighted volatility / Portfolio volatility
-
-Sharpe Ratio: Risk-adjusted return measure
+```
+pipenv install 
+pipenv shell
+pipenv run pip install -r requirements.txt
+```
 
 
+## Features
+### 1. Data Loading & Processing
 
+Automatic data retrieval from Yahoo Finance (free data source)
 
+Robust missing data handling
+
+Logarithmic return calculation
+
+### 2. Correlation Analysis
+
+Pearson correlation matrix computation
+
+Distance metric conversion for clustering
+
+Visualization of correlation patterns
+
+### 3. Hierarchical Clustering
+
+Ward's linkage method for minimum variance
+
+Automatic optimal cluster determination
+
+Dendrogram visualization
+
+### 4. Portfolio Optimization
+
+Equal cluster allocation strategy
+
+Diversification-focused weighting
+
+Portfolio metrics calculation
+
+### 5. Visualizations
+
+Interactive dendrogram
+
+Correlation heatmaps
+
+Portfolio composition charts
+
+Performance comparison plots
+
+### 6. Report Generation
+
+Automated PDF reports
+
+CSV data exports
+
+Summary statistics
